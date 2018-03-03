@@ -7,7 +7,7 @@ else
 FRAMEWORKS= -lmlx -lXext -lX11 -lm -lOpenCL
 endif
 FILES=main cl_wrapper
-OBJ=$(addprefix obj/, $(addsuffix .o, $(FILES)))
+OBJ=$(addsuffix .o, $(FILES))
 NAME=test
 
 all: $(NAME)
@@ -15,7 +15,7 @@ all: $(NAME)
 $(NAME): $(OBJ)
 	@$(CC) -o $(NAME) $(OBJ) $(CFLAGS) $(FRAMEWORKS)
 	@echo "Binary is done! 🖥"
-obj/%.o: %.c
+%.o: %.c
 	@$(CC) -c $^ -o $@ $(CFLAGS)
 clean:
 	@rm -f $(OBJ)
