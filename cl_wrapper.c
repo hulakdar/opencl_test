@@ -6,7 +6,7 @@
 /*   By: skamoza <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2018/03/02 14:37:46 by skamoza           #+#    #+#             */
-/*   Updated: 2018/03/03 16:13:52 by                  ###   ########.fr       */
+/*   Updated: 2018/03/03 16:25:13 by                  ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -99,23 +99,22 @@ void		rt_cl_init(t_cl_info *info)
 {
 	cl_int		status;
 
+	status = CL_SUCCESS;
 	check_error(clGetPlatformIDs(
-				1,
-				&info->platform,
+				1, &info->platform,
 				&info->num_platforms));
 	check_error(clGetDeviceIDs(
 				info->platform,
 				CL_DEVICE_TYPE_DEFAULT,
-				1,
-				&info->device_id,
+				1, &info->device_id,
 				&info->num_devices));
+	status = CL_SUCCESS;
 	info->context = clCreateContext(
-				NULL,
-				1,
+				NULL, 1,
 				&info->device_id,
-				NULL,
-				NULL,
+				NULL, NULL,
 				&status);
+	check_error(status);
 	info->command_queue = clCreateCommandQueue(
 				info->context,
 				info->device_id,
@@ -126,22 +125,34 @@ void		rt_cl_init(t_cl_info *info)
 
 cl_mem		rt_cl_malloc_read(t_cl_info *info, size_t size)
 {
-	return (clCreateBuffer(
+	cl_int		status;
+	cl_mem		ret;
+
+	status = CL_SUCCESS;
+	ret = clCreateBuffer(
 				info->context,
 				CL_MEM_READ_ONLY,
 				size,
 				NULL,
-				NULL));
+				&status);
+	return (ret);
+	check_error(status);
 }
 
 cl_mem		rt_cl_malloc_write(t_cl_info *info, size_t size)
 {
-	return (clCreateBuffer(
+	cl_int		status;
+	
+	status = CL_SUCCESS;
+	cl_mem		ret;
+	ret = clCreateBuffer(
 				info->context,
 				CL_MEM_WRITE_ONLY,
 				size,
 				NULL,
-				NULL));
+				&status);
+	return (ret);
+	check_error(status);
 }
 
 cl_int		rt_cl_host_to_device(
@@ -150,7 +161,10 @@ cl_int		rt_cl_host_to_device(
 		void *src,
 		size_t size)
 {
-	return (clEnqueueWriteBuffer(
+	cl_int		status;
+
+	status = CL_SUCCESS;
+	clEnqueueWriteBuffer(
 				info->command_queue,
 				obj,
 				CL_TRUE,
@@ -159,7 +173,9 @@ cl_int		rt_cl_host_to_device(
 				src,
 				0,
 				NULL,
-				NULL));
+				&status);
+	check_error(status);
+	return (status);
 }
 
 cl_int		rt_cl_device_to_host(
@@ -168,7 +184,10 @@ cl_int		rt_cl_device_to_host(
 		void *dest,
 		size_t size)
 {
-	return (clEnqueueReadBuffer(
+	cl_int		status;
+
+	status = CL_SUCCESS;
+	clEnqueueReadBuffer(
 				info->command_queue,
 				obj,
 				CL_TRUE,
@@ -177,7 +196,9 @@ cl_int		rt_cl_device_to_host(
 				dest,
 				0,
 				NULL,
-				NULL));
+				&status);
+	check_error(status);
+	return (status);
 }
 
 cl_int		rt_cl_compile(t_cl_info *info, char *path)
@@ -185,49 +206,60 @@ cl_int		rt_cl_compile(t_cl_info *info, char *path)
 	int		fd;
 	char	src[MAX_SOURCE_SIZE];
 	size_t	size;
+	cl_int	status;
 	char	*seeker;
 
+	status = CL_SUCCESS;
 	if ((fd = open(path, O_RDONLY)) != -1)
 	{
 		size = read(fd, src, MAX_SOURCE_SIZE);
 		seeker = &src[0];
 		info->program = clCreateProgramWithSource(
-				info->context,
-				1,
+				info->context, 1,
 				(const char **)&seeker,
 				(const size_t *)&size,
-				NULL);
-		clBuildProgram(info->program, 1, &info->device_id, NULL, NULL, NULL);
+				&status);
+		check_error(status);
+		clBuildProgram(info->program, 1, &info->device_id, NULL, NULL, &status);
+		check_error(status);
 		close(fd);
 	}
 	else
-		return (CL_BUILD_PROGRAM_FAILURE);
-	return (CL_SUCCESS);
+		status = CL_BUILD_PROGRAM_FAILURE;
+	return (status);
 }
 
 void		rt_cl_join(t_cl_info *info)
 {
+	cl_int		status;
 	clFlush(info->command_queue);
 	clFinish(info->command_queue);
+	check_error(status);
 }
 
 void		rt_cl_free(t_cl_info *info)
 {
+	cl_int		status;
 	clReleaseProgram(info->program);
 	clReleaseCommandQueue(info->command_queue);
 	clReleaseContext(info->context);
+	check_error(status);
 }
 
 void		rt_cl_free_kernel(t_kernel *kernel)
 {
+	cl_int		status;
 	clReleaseKernel(kernel->kernel);
+	check_error(status);
 }
 
 t_kernel	rt_cl_create_kernel(t_cl_info *info, char *name)
 {
+	cl_int		status;
 	t_kernel	kernel;
 
 	kernel.kernel = clCreateKernel(info->program, name, NULL);
+	check_error(status);
 	kernel.args = 0;
 	kernel.info = info;
 	return (kernel);
@@ -235,7 +267,9 @@ t_kernel	rt_cl_create_kernel(t_cl_info *info, char *name)
 
 void		rt_cl_push_arg(t_kernel *kernel, void *src, size_t size)
 {
+	cl_int		status;
 	clSetKernelArg(kernel->kernel, kernel->args++, size, src);
+	check_error(status);
 }
 
 void		rt_cl_drop_arg(t_kernel *kernel)
@@ -245,6 +279,8 @@ void		rt_cl_drop_arg(t_kernel *kernel)
 
 void		rt_cl_push_task(t_kernel *kernel, size_t size)
 {
+	cl_int		status;
 	clEnqueueNDRangeKernel(kernel->info->command_queue, kernel->kernel, 1,
 			NULL, &size, NULL, 0, NULL, NULL);
+	check_error(status);
 }
