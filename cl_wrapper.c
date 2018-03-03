@@ -6,7 +6,7 @@
 /*   By: skamoza <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2018/03/02 14:37:46 by skamoza           #+#    #+#             */
-/*   Updated: 2018/03/03 16:25:13 by                  ###   ########.fr       */
+/*   Updated: 2018/03/03 16:35:58 by                  ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -163,8 +163,7 @@ cl_int		rt_cl_host_to_device(
 {
 	cl_int		status;
 
-	status = CL_SUCCESS;
-	clEnqueueWriteBuffer(
+	status = clEnqueueWriteBuffer(
 				info->command_queue,
 				obj,
 				CL_TRUE,
@@ -173,7 +172,7 @@ cl_int		rt_cl_host_to_device(
 				src,
 				0,
 				NULL,
-				&status);
+				NULL);
 	check_error(status);
 	return (status);
 }
@@ -186,8 +185,7 @@ cl_int		rt_cl_device_to_host(
 {
 	cl_int		status;
 
-	status = CL_SUCCESS;
-	clEnqueueReadBuffer(
+	status = clEnqueueReadBuffer(
 				info->command_queue,
 				obj,
 				CL_TRUE,
@@ -196,7 +194,7 @@ cl_int		rt_cl_device_to_host(
 				dest,
 				0,
 				NULL,
-				&status);
+				NULL);
 	check_error(status);
 	return (status);
 }
@@ -220,8 +218,8 @@ cl_int		rt_cl_compile(t_cl_info *info, char *path)
 				(const size_t *)&size,
 				&status);
 		check_error(status);
-		clBuildProgram(info->program, 1, &info->device_id, NULL, NULL, &status);
-		check_error(status);
+		check_error(clBuildProgram(info->program,
+					1, &info->device_id, NULL, NULL, NULL));
 		close(fd);
 	}
 	else
@@ -232,24 +230,30 @@ cl_int		rt_cl_compile(t_cl_info *info, char *path)
 void		rt_cl_join(t_cl_info *info)
 {
 	cl_int		status;
-	clFlush(info->command_queue);
-	clFinish(info->command_queue);
+
+	status = clFlush(info->command_queue);
+	check_error(status);
+	status = clFinish(info->command_queue);
 	check_error(status);
 }
 
 void		rt_cl_free(t_cl_info *info)
 {
 	cl_int		status;
-	clReleaseProgram(info->program);
-	clReleaseCommandQueue(info->command_queue);
-	clReleaseContext(info->context);
+
+	status = clReleaseProgram(info->program);
+	check_error(status);
+	status = clReleaseCommandQueue(info->command_queue);
+	check_error(status);
+	status = clReleaseContext(info->context);
 	check_error(status);
 }
 
 void		rt_cl_free_kernel(t_kernel *kernel)
 {
 	cl_int		status;
-	clReleaseKernel(kernel->kernel);
+
+	status = clReleaseKernel(kernel->kernel);
 	check_error(status);
 }
 
@@ -258,7 +262,7 @@ t_kernel	rt_cl_create_kernel(t_cl_info *info, char *name)
 	cl_int		status;
 	t_kernel	kernel;
 
-	kernel.kernel = clCreateKernel(info->program, name, NULL);
+	kernel.kernel = clCreateKernel(info->program, name, &status);
 	check_error(status);
 	kernel.args = 0;
 	kernel.info = info;
@@ -268,7 +272,8 @@ t_kernel	rt_cl_create_kernel(t_cl_info *info, char *name)
 void		rt_cl_push_arg(t_kernel *kernel, void *src, size_t size)
 {
 	cl_int		status;
-	clSetKernelArg(kernel->kernel, kernel->args++, size, src);
+
+	status = clSetKernelArg(kernel->kernel, kernel->args++, size, src);
 	check_error(status);
 }
 
@@ -280,7 +285,9 @@ void		rt_cl_drop_arg(t_kernel *kernel)
 void		rt_cl_push_task(t_kernel *kernel, size_t size)
 {
 	cl_int		status;
-	clEnqueueNDRangeKernel(kernel->info->command_queue, kernel->kernel, 1,
+
+	status = clEnqueueNDRangeKernel(kernel->info->command_queue,
+			kernel->kernel, 1,
 			NULL, &size, NULL, 0, NULL, NULL);
 	check_error(status);
 }
