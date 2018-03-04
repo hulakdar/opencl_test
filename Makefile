@@ -19,11 +19,9 @@ $(NAME): $(OBJ)
 	@$(CC) -c $^ -o $@ $(CFLAGS)
 clean:
 	@rm -f $(OBJ)
-	@make -C libft/ clean
 	@echo "Cleaned the objects! ❌"
 fclean: clean
 	@rm -f $(NAME)
-	@make -C libft/ fclean
 	@echo "Cleaned the binary! ☠️"
 re: fclean all
 	
