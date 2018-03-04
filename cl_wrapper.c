@@ -273,7 +273,7 @@ void		rt_cl_push_arg(t_kernel *kernel, void *src, size_t size)
 {
 	cl_int		status;
 
-	status = clSetKernelArg(kernel->kernel, kernel->args++, size, src);
+	status = clSetKernelArg(kernel->kernel, kernel->args++, size, &src);
 	check_error(status);
 }
 
